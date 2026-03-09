@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Quiz – Hojas en Excel 365</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Tahoma,Verdana,sans-serif;background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);min-height:100vh;display:flex;align-items:center;justify-content:center}
+.app{background:#fff;max-width:800px;width:95%;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.25);overflow:hidden}
+header{background:linear-gradient(135deg,#217346 0%,#2b8856 100%);color:#fff;padding:24px;text-align:center}
+main{padding:24px}
+.progress{margin-bottom:16px;font-weight:600;color:#217346}
+.question{font-size:1.2rem;margin-bottom:16px}
+.options{display:grid;gap:12px}
+.option-btn{padding:12px 14px;border-radius:10px;border:2px solid #217346;background:#f4f8f6;cursor:pointer;font-size:1rem;text-align:left;transition:.2s}
+.option-btn:hover{background:#e9f3ef}
+.option-btn.correct{background:#c8f7d2;border-color:#1f8f4a;color:#0f4d27}
+.option-btn.wrong{background:#ffd6d6;border-color:#c0392b;color:#7b1d14}
+.feedback{margin-top:16px;padding:12px;border-radius:10px;display:none}
+.feedback.correct{background:#eafaf1;color:#1f8f4a;border:1px solid #1f8f4a}
+.feedback.wrong{background:#fff0f0;color:#c0392b;border:1px solid #c0392b}
+.controls{margin-top:20px;display:flex;justify-content:space-between;align-items:center}
+button#nextBtn{background:#217346;color:#fff;border:none;padding:10px 18px;border-radius:10px;font-size:1rem;cursor:pointer;display:none}
+button#restartBtn{background:#2a5298;color:#fff;border:none;padding:10px 18px;border-radius:10px;font-size:1rem;cursor:pointer;display:none}
+.score{font-weight:700}
+footer{text-align:center;padding:12px;color:#666;font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+<h1>🧠 Quiz – Autorrellenar en Excel 365</h1>
+<p>Selecciona la respuesta answer en cada q</p>
+</header>
+<main>
+<div class="progress" id="progress"></div>
+<div class="question" id="question"></div>
+<div class="options" id="options"></div>
+<div class="feedback" id="feedback"></div>
+<div class="controls">
+<div class="score" id="score"></div>
+<button id="nextBtn">Siguiente</button>
+<button id="restartBtn">Reiniciar quiz</button>
+</div>
+</main>
+<footer>
+Curso: Microsoft Excel 365 - Funciones y Herramientas Esenciales
+</footer>
+</div>
+
+<script>
+const questions = [
+{
+q: "¿Qué es una referencia de celda en Excel?",
+options: [
+"Una función para ordenar datos",
+"La forma en que Excel identifica una celda usando columna y fila",
+"Un tipo de gráfico",
+"Una herramienta para crear tablas"
+],
+answer: 1
+},
+{
+q: "¿Qué información contiene una referencia como A1?",
+options: [
+"La hoja y el libro",
+"La columna y la fila",
+"El formato y el color",
+"El nombre del archivo"
+],
+answer: 1
+},
+{
+q: "¿Qué indica la referencia C5 en Excel?",
+options: [
+"Columna C, Fila 5",
+"Columna 5, Fila C",
+"Celda número 5",
+"Hoja C, fila 5"
+],
+answer: 0
+},
+{
+q: "¿Cuántos tipos de referencias ofrece Excel?",
+options: [
+"Dos",
+"Tres",
+"Cuatro",
+"Cinco"
+],
+answer: 1
+},
+{
+q: "¿Cuáles son los tres tipos de referencias en Excel?",
+options: [
+"Simples, dobles y triples",
+"Relativas, absolutas y mixtas",
+"Numéricas, alfabéticas y combinadas",
+"Verticales, horizontales y diagonales"
+],
+answer: 1
+},
+{
+q: "¿Qué símbolo se utiliza para fijar partes de una referencia en Excel?",
+options: [
+"#",
+"$",
+"&",
+"%"
+],
+answer: 1
+},
+{
+q: "¿Qué determina el símbolo $ en una referencia de Excel?",
+options: [
+"El formato de la celda",
+"Qué partes de la referencia permanecen fijas",
+"El color del texto",
+"El tamaño de la columna"
+],
+answer: 1
+},
+{
+q: "¿Qué tecla permite cambiar rápidamente entre tipos de referencia en Excel?",
+options: [
+"F1",
+"F2",
+"F4",
+"F12"
+],
+answer: 2
+},
+{
+q: "¿Para qué se utilizan las referencias de celda en las fórmulas?",
+options: [
+"Para cambiar colores",
+"Para indicar qué celdas usar en los cálculos",
+"Para insertar imágenes",
+"Para ordenar columnas"
+],
+answer: 1
+},
+{
+q: "¿Qué hace la fórmula =A1*2?",
+options: [
+"Suma dos celdas",
+"Multiplica el valor de la celda A1 por 2",
+"Divide A1 entre 2",
+"Cambia el formato de A1"
+],
+answer: 1
+}
+];
+
+let shuffled = [];
+let current = 0;
+let score = 0;
+let answered = false;
+
+function shuffle(array){
+return array.map(v=>({v,sort:Math.random()})).sort((a,b)=>a.sort-b.sort).map(({v})=>v);
+}
+
+function startQuiz(){
+shuffled = shuffle(questions);
+current = 0;
+score = 0;
+document.getElementById('restartBtn').style.display='none';
+loadQuestion();
+}
+
+function loadQuestion(){
+answered = false;
+const q = shuffled[current];
+document.getElementById('progress').textContent = `Pregunta ${current+1} de ${shuffled.length}`;
+document.getElementById('question').textContent = q.q;
+const optionsDiv = document.getElementById('options');
+optionsDiv.innerHTML = '';
+q.options.forEach((opt,i)=>{
+const btn = document.createElement('button');
+btn.className = 'option-btn';
+btn.textContent = opt;
+btn.onclick = ()=>selectAnswer(i,btn);
+optionsDiv.appendChild(btn);
+});
+const fb = document.getElementById('feedback');
+fb.style.display='none';
+fb.className='feedback';
+document.getElementById('nextBtn').style.display='none';
+document.getElementById('score').textContent = `Puntaje: ${score}`;
+}
+
+function selectAnswer(index,btn){
+if(answered) return;
+answered = true;
+const q = shuffled[current];
+const buttons = document.querySelectorAll('.option-btn');
+buttons.forEach(b=>b.disabled=true);
+const fb = document.getElementById('feedback');
+
+if(index === q.answer){
+btn.classList.add('correct');
+fb.textContent = '✅ Respuesta correcta';
+fb.classList.add('correct');
+score++;
+}else{
+btn.classList.add('wrong');
+buttons[q.answer].classList.add('correct');
+fb.textContent = `❌ Respuesta incorrecta. La respuesta correcta es: ${q.options[q.answer]}`;
+fb.classList.add('wrong');
+}
+fb.style.display='block';
+document.getElementById('score').textContent = `Puntaje: ${score}`;
+document.getElementById('nextBtn').style.display='inline-block';
+}
+
+function nextQuestion(){
+current++;
+if(current < shuffled.length){
+loadQuestion();
+}else{
+showResults();
+}
+}
+
+function showResults(){
+document.getElementById('question').textContent = '🎉 Quiz finalizado';
+document.getElementById('options').innerHTML = '';
+document.getElementById('progress').textContent = '';
+const fb = document.getElementById('feedback');
+fb.style.display='block';
+fb.className='feedback correct';
+fb.textContent = `Obtuviste ${score} de ${shuffled.length} respuestas correctas.`;
+document.getElementById('nextBtn').style.display='none';
+document.getElementById('restartBtn').style.display='inline-block';
+}
+
+// Eventos
+document.getElementById('nextBtn').onclick = nextQuestion;
+document.getElementById('restartBtn').onclick = startQuiz;
+
+startQuiz();
+</script>
+</body>
+</html>
